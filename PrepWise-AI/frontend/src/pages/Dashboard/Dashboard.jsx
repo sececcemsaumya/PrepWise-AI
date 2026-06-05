@@ -43,11 +43,11 @@ const Dashboard = () => {
     fetchAnalytics();
   }, []);
 
-  const stats = analytics || {
-    totalInterviews: user?.stats?.totalInterviews || 0,
-    averageScore: user?.stats?.averageScore || 0,
-    bestScore: user?.stats?.bestScore || 0,
-    totalQuestions: user?.stats?.totalQuestions || 0,
+  const stats = {
+    totalInterviews: analytics?.totalInterviews ?? user?.stats?.totalInterviews ?? 0,
+    averageScore: analytics?.averageScore ?? user?.stats?.averageScore ?? 0,
+    bestScore: analytics?.bestScore ?? user?.stats?.bestScore ?? 0,
+    totalQuestions: analytics?.totalQuestions ?? user?.stats?.totalQuestions ?? 0,
   };
 
   const getScoreColor = (score) => {

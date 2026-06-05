@@ -2,8 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import useInterview from "../../hooks/useInterview";
-import useTimer from "../../hooks/useTimer";
-import { initSocket, joinSession, emitTimerTick } from "../../services/socketService";
+import { initSocket, joinSession } from "../../services/socketService";
 import "./InterviewSession.css";
 
 const QUESTION_TIME = 180;
@@ -74,7 +73,6 @@ const InterviewSession = () => {
   const introRan     = useRef(false);
   const questionsRef = useRef([]);
 
-  const timer        = useTimer(QUESTION_TIME);
   const answerRef    = useRef(null);
   const chatEndRef   = useRef(null);
   const startTimeRef = useRef(Date.now());
@@ -141,8 +139,6 @@ const InterviewSession = () => {
                   { role: "interviewer", content: firstQ.question, topic: firstQ.topic, type: firstQ.type },
                 ]);
                 setIntroComplete(true);
-                timer.reset(QUESTION_TIME);
-                timer.start();
                 startTimeRef.current = Date.now();
                 setTimeout(() => answerRef.current?.focus(), 100);
               } else {
@@ -166,10 +162,7 @@ const InterviewSession = () => {
     if (token) { initSocket(token); joinSession(sessionId); }
   }, [token, sessionId]);
 
-  // ── Timer ticks ──────────────────────────────────────────────────────
-  useEffect(() => {
-    if (timer.isRunning) emitTimerTick(sessionId, timer.timeLeft, currentIndex);
-  }, [timer.timeLeft]);
+
 
   // ── Auto scroll ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -179,7 +172,6 @@ const InterviewSession = () => {
   // ── Submit answer ────────────────────────────────────────────────────
   const handleSubmitAnswer = async () => {
     if (!answer.trim() || submitting || !introComplete) return;
-    timer.pause();
 
     const userAnswer = answer.trim();
     setAnswer("");
@@ -214,7 +206,6 @@ const InterviewSession = () => {
       setShowEvaluation(true);
     } catch (err) {
       setError(err.message || "Failed to submit answer");
-      timer.start();
     } finally {
       setSubmitting(false);
     }
@@ -246,8 +237,6 @@ const InterviewSession = () => {
             type: nextQ.type,
           }];
         });
-        timer.reset(QUESTION_TIME);
-        timer.start();
         startTimeRef.current = Date.now();
         setTimeout(() => answerRef.current?.focus(), 100);
       }
@@ -264,12 +253,6 @@ const InterviewSession = () => {
       setError("Failed to complete interview");
       setCompleting(false);
     }
-  };
-
-  const getTimerClass = () => {
-    if (timer.isDanger) return "timer-danger";
-    if (timer.isWarning) return "timer-warning";
-    return "";
   };
 
   // ── Loading ──────────────────────────────────────────────────────────
@@ -416,12 +399,6 @@ const InterviewSession = () => {
           <div className="answered-count">
             <span>{answeredCount}</span>
             <span className="answered-label">answered</span>
-          </div>
-          <div className={`session-timer ${getTimerClass()}`}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-            </svg>
-            {timer.formattedTime}
           </div>
           <button className="btn btn-outline btn-sm end-btn" onClick={handleFinishInterview} disabled={completing}>
             {completing ? <div className="spinner" /> : "End Interview"}

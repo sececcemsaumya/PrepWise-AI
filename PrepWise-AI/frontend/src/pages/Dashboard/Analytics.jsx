@@ -1,9 +1,20 @@
 import React, { useState, useEffect } from "react";
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  AreaChart, Area, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid,
   PolarAngleAxis, PolarRadiusAxis, Legend
 } from "recharts";
+
+const COLORS = [
+  "#6366F1", // Indigo
+  "#3B82F6", // Blue
+  "#10B981", // Emerald
+  "#F59E0B", // Amber
+  "#EC4899", // Pink
+  "#8B5CF6", // Violet
+  "#EF4444", // Red
+  "#06B6D4", // Cyan
+];
 import useInterview from "../../hooks/useInterview";
 import "./Analytics.css";
 
@@ -134,21 +145,27 @@ const Analytics = () => {
           <h3>Score History</h3>
           <p className="chart-desc">Your performance trend over time</p>
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={scoreHistoryData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <AreaChart data={scoreHistoryData}>
+              <defs>
+                <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366F1" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
               <XAxis dataKey="name" tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
               <YAxis domain={[0, 10]} tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
               <Tooltip content={<CustomTooltip />} />
-              <Line
+              <Area
                 type="monotone"
                 dataKey="score"
-                stroke="var(--accent-primary)"
-                strokeWidth={2}
-                dot={{ fill: "var(--accent-primary)", r: 4 }}
-                activeDot={{ r: 6 }}
+                stroke="#6366F1"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#scoreGrad)"
                 name="Score"
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </div>
 
@@ -158,11 +175,15 @@ const Analytics = () => {
           <p className="chart-desc">Average scores by interview category</p>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={categoryData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
               <XAxis dataKey="name" tick={{ fill: "var(--text-muted)", fontSize: 10 }} />
               <YAxis domain={[0, 10]} tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="avgScore" fill="var(--accent-secondary)" radius={[4, 4, 0, 0]} name="Avg Score" />
+              <Bar dataKey="avgScore" fill="var(--accent-secondary)" radius={[4, 4, 0, 0]} name="Avg Score">
+                {categoryData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -177,11 +198,15 @@ const Analytics = () => {
             <p className="chart-desc">Average scores by topic</p>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={topicData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.5} />
                 <XAxis type="number" domain={[0, 10]} tick={{ fill: "var(--text-muted)", fontSize: 11 }} />
                 <YAxis dataKey="topic" type="category" tick={{ fill: "var(--text-muted)", fontSize: 10 }} width={100} />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="score" fill="var(--accent-primary)" radius={[0, 4, 4, 0]} name="Score" />
+                <Bar dataKey="score" fill="var(--accent-primary)" radius={[0, 4, 4, 0]} name="Score">
+                  {topicData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -194,15 +219,15 @@ const Analytics = () => {
             <p className="chart-desc">Performance across different topics</p>
             <ResponsiveContainer width="100%" height={220}>
               <RadarChart data={radarData}>
-                <PolarGrid stroke="var(--border)" />
+                <PolarGrid stroke="var(--border)" opacity={0.5} />
                 <PolarAngleAxis dataKey="subject" tick={{ fill: "var(--text-muted)", fontSize: 10 }} />
                 <PolarRadiusAxis domain={[0, 10]} tick={{ fill: "var(--text-muted)", fontSize: 9 }} />
                 <Radar
                   name="Score"
                   dataKey="score"
-                  stroke="var(--accent-primary)"
-                  fill="var(--accent-primary)"
-                  fillOpacity={0.2}
+                  stroke="#EC4899"
+                  fill="#EC4899"
+                  fillOpacity={0.3}
                 />
               </RadarChart>
             </ResponsiveContainer>

@@ -14,7 +14,7 @@ const initGemini = () => {
       model: "gemini-2.5-flash",
       generationConfig: { temperature: 0.7, topP: 0.95, maxOutputTokens: 1024 },
     });
-    console.log("✅ Gemini AI initialized");
+    console.log("✅ Gemini AI initialized (gemini-2.5-flash)");
     return true;
   } catch (error) {
     console.warn(`⚠️ Gemini initialization failed: ${error.message}`);
@@ -268,7 +268,7 @@ const getGeneralQuestion = (resumeData) => {
 
 // ==================== MAIN GENERATION FUNCTIONS ====================
 const generateFirstQuestion = async (resumeData, config) => {
-  const { category, role = "general", difficulty = "intermediate" } = config;
+  const { category, role = "general", difficulty = "intermediate", candidateName = "Candidate" } = config;
   
   console.log(`Generating first question for category: ${category}, difficulty: ${difficulty}`);
   
@@ -293,13 +293,14 @@ const generateFirstQuestion = async (resumeData, config) => {
 Category: ${categoryName}
 Target Role: ${role}
 Difficulty Level: ${difficulty}
+Candidate Name: ${candidateName}
 
 Candidate Resume Context:
 ${resumeContext || "No resume details available."}
 
 Generate the very FIRST question of the interview.
 Guidelines:
-1. Make it a professional, welcoming starting question.
+1. Make it a professional, welcoming starting question, greeting the candidate by their name (${candidateName}).
 2. If it's a technical category (like Java, Python, MERN), start by asking about a relevant project on their resume or their experience with that technology.
 3. If it's DSA, start with a coding/algorithmic problem matching the difficulty level.
 4. If it's Behavioral/HR, start with a situational/work-style question or career goals.
@@ -386,6 +387,62 @@ Return STRICT JSON format:
       difficulty: difficulty,
     };
   }
+
+  // Java Technical
+  if (category === "java") {
+    const selected = JAVA_FALLBACK_QUESTIONS[Math.floor(Math.random() * JAVA_FALLBACK_QUESTIONS.length)];
+    return {
+      questionId: `q_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      question: selected,
+      type: "technical",
+      topic: "Java Technical",
+      phase: "Technical Concepts",
+      basedOn: "General Concept",
+      difficulty: difficulty,
+    };
+  }
+
+  // Python Technical
+  if (category === "python") {
+    const selected = PYTHON_FALLBACK_QUESTIONS[Math.floor(Math.random() * PYTHON_FALLBACK_QUESTIONS.length)];
+    return {
+      questionId: `q_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      question: selected,
+      type: "technical",
+      topic: "Python Technical",
+      phase: "Technical Concepts",
+      basedOn: "General Concept",
+      difficulty: difficulty,
+    };
+  }
+
+  // HR Interview
+  if (category === "hr") {
+    const selected = HR_FALLBACK_QUESTIONS[Math.floor(Math.random() * HR_FALLBACK_QUESTIONS.length)];
+    return {
+      questionId: `q_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      question: selected,
+      type: "behavioral",
+      topic: "HR & Culture",
+      phase: "Introduction",
+      basedOn: "General Concept",
+      difficulty: difficulty,
+    };
+  }
+
+  // Behavioral
+  if (category === "behavioral") {
+    const selected = BEHAVIORAL_FALLBACK_QUESTIONS[Math.floor(Math.random() * BEHAVIORAL_FALLBACK_QUESTIONS.length)];
+    return {
+      questionId: `q_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      question: selected,
+      type: "behavioral",
+      topic: "Behavioral",
+      phase: "Scenario-Based",
+      basedOn: "General Concept",
+      difficulty: difficulty,
+    };
+  }
   
   // General / Role-based / Other
   const { question, topic, basedOn } = getGeneralQuestion(resumeData);
@@ -459,7 +516,7 @@ Guidelines:
 2. If the candidate's last answer lacked depth or has areas for improvement, ask a follow-up question to clarify, probe, or challenge them.
 3. If they answered well, either dive deeper into the technical implementation/trade-offs or transition to a new phase/topic.
 4. Keep the tone professional, realistic, and recruiter-like.
-5. Strictly avoid asking the same questions or topics already asked.
+5. Strictly avoid asking the same questions, asking very similar questions, or repeating topics already asked. Make sure the new question is distinct from previously asked questions.
 
 Return STRICT JSON format:
 {
@@ -509,14 +566,23 @@ Return STRICT JSON format:
   // Fallback to static questions
   
   const hasAsked = (qText) => {
-    return questionsAsked.some(aq => aq.toLowerCase().includes(qText.toLowerCase().trim()));
+    return questionsAsked.some(aq => 
+      aq.toLowerCase().includes(qText.toLowerCase().trim()) ||
+      qText.toLowerCase().trim().includes(aq.toLowerCase().trim())
+    );
   };
 
   const getFallbackQuestion = (questionList, fallbackTopic) => {
     const available = questionList.filter(q => !hasAsked(q));
-    const selected = available.length > 0 
-      ? available[Math.floor(Math.random() * available.length)] 
-      : questionList[Math.floor(Math.random() * questionList.length)];
+    let selected;
+    if (available.length > 0) {
+      selected = available[Math.floor(Math.random() * available.length)];
+    } else {
+      const lastAsked = questionsAsked[questionsAsked.length - 1];
+      const filteredList = questionList.filter(q => q.toLowerCase().trim() !== lastAsked?.toLowerCase().trim());
+      const listToUse = filteredList.length > 0 ? filteredList : questionList;
+      selected = listToUse[Math.floor(Math.random() * listToUse.length)];
+    }
     return {
       questionId: `q_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
       question: selected,
@@ -628,17 +694,29 @@ Return STRICT JSON format:
 
 // ==================== EVALUATION ====================
 const fallbackEvaluateAnswer = async (question, answer, context = {}) => {
+  const { category = "general" } = context;
+  const isTechnical = ["dsa", "system-design", "mern", "java", "python", "role-based", "general"].includes(category);
+  const isDsaOrSysDesign = ["dsa", "system-design"].includes(category);
+  
   if (!answer || answer.trim().length < 30) {
     return {
       score: 3,
-      technicalAccuracy: 3,
+      technicalAccuracy: isTechnical ? 3 : 0,
       completeness: 2,
       clarity: 3,
       relevance: 3,
       examples: 2,
-      feedback: "⚠️ Your answer was brief. Please provide more details about your approach, step-by-step reasoning, and complexity analysis.",
+      feedback: isDsaOrSysDesign
+        ? "⚠️ Your answer was brief. Please provide more details about your approach, step-by-step reasoning, and complexity analysis."
+        : isTechnical
+        ? "⚠️ Your answer was brief. Please provide more details about the technical concepts, framework specifics, and concrete examples."
+        : "⚠️ Your answer was brief. Please provide a more detailed response with specific examples using the STAR method (Situation, Task, Action, Result).",
       strengths: [],
-      improvements: ["Provide detailed explanation", "Include time/space complexity", "Give concrete examples"],
+      improvements: isDsaOrSysDesign
+        ? ["Provide detailed explanation", "Include time/space complexity", "Give concrete examples"]
+        : isTechnical
+        ? ["Provide detailed technical explanation", "Include code structure/architecture details", "Give concrete examples"]
+        : ["Provide detailed behavioral explanation", "Use the STAR method", "Give concrete situational examples"],
       strongTopics: [],
       weakTopics: ["Answer completeness"],
     };
@@ -646,53 +724,95 @@ const fallbackEvaluateAnswer = async (question, answer, context = {}) => {
   
   const wordCount = answer.split(/\s+/).length;
   const hasComplexity = answer.toLowerCase().includes("time complexity") || answer.toLowerCase().includes("space complexity") || answer.toLowerCase().includes("o(n");
-  const hasExample = answer.includes("example") || answer.includes("e.g.") || answer.includes("like");
-  const hasCode = answer.includes("function") || answer.includes("const") || answer.includes("let") || answer.includes("return") || answer.includes("=>");
+  const hasExample = answer.toLowerCase().includes("example") || answer.toLowerCase().includes("e.g.") || answer.toLowerCase().includes("like") || answer.toLowerCase().includes("instance");
+  const hasCode = answer.includes("function") || answer.includes("const") || answer.includes("let") || answer.includes("return") || answer.includes("=>") || answer.includes("class") || answer.includes("import");
+  const hasStarMethod = answer.toLowerCase().includes("situation") || answer.toLowerCase().includes("task") || answer.toLowerCase().includes("action") || answer.toLowerCase().includes("result") || wordCount > 70;
   
   let score = 5;
   let feedback = "";
   let strengths = [];
   let improvements = [];
   
-  if (wordCount > 100 && hasComplexity && (hasCode || hasExample)) {
-    score = 8;
-    feedback = "✅ Excellent answer! You provided a clear solution with complexity analysis and good examples.";
-    strengths = ["Good complexity analysis", "Clear explanation", "Concrete examples"];
-    improvements = ["Consider edge cases", "Discuss alternative approaches"];
-  } else if (wordCount > 60 && (hasComplexity || hasCode)) {
-    score = 6;
-    feedback = "👍 Good answer! To improve, add more detailed complexity analysis and consider edge cases.";
-    strengths = ["Good structure", "Clear reasoning"];
-    improvements = ["Add time/space complexity", "Discuss edge cases", "Provide example"];
-  } else if (wordCount > 40) {
-    score = 4;
-    feedback = "📝 You're on the right track. Next time, include complexity analysis and a concrete example.";
-    strengths = ["Made good attempt"];
-    improvements = ["Add complexity analysis", "Provide example", "Explain step by step"];
+  if (isDsaOrSysDesign) {
+    if (wordCount > 100 && hasComplexity && (hasCode || hasExample)) {
+      score = 8;
+      feedback = "✅ Excellent answer! You provided a clear solution with complexity analysis and good examples.";
+      strengths = ["Good complexity analysis", "Clear explanation", "Concrete examples"];
+      improvements = ["Consider edge cases", "Discuss alternative approaches"];
+    } else if (wordCount > 60 && (hasComplexity || hasCode)) {
+      score = 6;
+      feedback = "👍 Good answer! To improve, add more detailed complexity analysis and consider edge cases.";
+      strengths = ["Good structure", "Clear reasoning"];
+      improvements = ["Add time/space complexity", "Discuss edge cases", "Provide example"];
+    } else if (wordCount > 40) {
+      score = 4;
+      feedback = "📝 You're on the right track. Next time, include complexity analysis and a concrete example.";
+      strengths = ["Made good attempt"];
+      improvements = ["Add complexity analysis", "Provide example", "Explain step by step"];
+    } else {
+      score = 3;
+      feedback = "📚 Your answer needs more detail. Please explain your approach step by step with complexity analysis.";
+      strengths = [];
+      improvements = ["Detailed explanation needed", "Add complexity analysis", "Provide example"];
+    }
+    if (hasComplexity) score += 0.5;
+    if (hasExample) score += 0.5;
+    if (hasCode) score += 0.5;
+  } else if (isTechnical) {
+    if (wordCount > 80 && (hasCode || hasExample)) {
+      score = 8;
+      feedback = "✅ Excellent technical answer! You demonstrated solid understanding with relevant examples.";
+      strengths = ["Solid technical understanding", "Clear explanation", "Concrete examples"];
+      improvements = ["Discuss trade-offs or optimization", "Mention real-world best practices"];
+    } else if (wordCount > 50 && hasExample) {
+      score = 6;
+      feedback = "👍 Good technical explanation! To reach the next level, provide more technical depth or code examples.";
+      strengths = ["Good technical concepts", "Used examples"];
+      improvements = ["Mention framework/language specific details", "Consider performance optimizations"];
+    } else {
+      score = 4;
+      feedback = "📝 Good start. Try to elaborate more on the framework/language concepts and provide concrete details.";
+      strengths = ["Understands basics"];
+      improvements = ["Elaborate on core concepts", "Provide code or architectural examples"];
+    }
+    if (hasExample) score += 0.5;
+    if (hasCode) score += 1.0;
   } else {
-    score = 3;
-    feedback = "📚 Your answer needs more detail. Please explain your approach step by step with complexity analysis.";
-    strengths = [];
-    improvements = ["Detailed explanation needed", "Add complexity analysis", "Provide example"];
+    // HR / Behavioral
+    if (wordCount > 80 && hasStarMethod) {
+      score = 8;
+      feedback = "✅ Excellent behavioral answer! You structured your response nicely and provided clear context.";
+      strengths = ["Great structure (STAR method)", "Clear communication", "Relevant experience shared"];
+      improvements = ["Emphasize the result or key learnings", "Be even more precise on your personal contribution"];
+    } else if (wordCount > 50) {
+      score = 6;
+      feedback = "👍 Good answer! Try to explicitly structure using Situation, Task, Action, and Result.";
+      strengths = ["Communicates clearly", "Relatable situation"];
+      improvements = ["Use the STAR method structure", "Explain what you personally did vs the team"];
+    } else {
+      score = 4;
+      feedback = "📝 Good starting point. To make it stronger, use a specific project or situation and share the outcome.";
+      strengths = ["Aimed to share scenario"];
+      improvements = ["Elaborate on the Situation", "Provide concrete actions you took", "Share the final Result"];
+    }
+    if (hasExample) score += 0.5;
+    if (hasStarMethod) score += 0.5;
   }
   
-  if (hasComplexity) score += 0.5;
-  if (hasExample) score += 0.5;
-  if (hasCode) score += 0.5;
   score = Math.min(10, Math.max(0, score));
   
   return {
     score: Math.round(score * 10) / 10,
-    technicalAccuracy: Math.min(10, score + 0.5),
+    technicalAccuracy: isTechnical ? Math.min(10, score + 0.5) : 0,
     clarity: Math.min(10, score),
     communication: Math.min(10, score),
     confidence: Math.min(10, score),
     explanationDepth: Math.min(10, score),
     feedback: feedback,
     strengths: strengths.length ? strengths : ["Attempted to answer"],
-    improvements: improvements.length ? improvements : ["Provide more technical depth", "Include complexity analysis"],
+    improvements: improvements.length ? improvements : ["Provide more depth", "Include concrete examples"],
     strongTopics: [],
-    weakTopics: hasComplexity ? [] : ["Complexity analysis"],
+    weakTopics: isDsaOrSysDesign && !hasComplexity ? ["Complexity analysis"] : [],
   };
 };
 
@@ -702,7 +822,7 @@ const evaluateAnswer = async (question, answer, context = {}) => {
     return fallbackEvaluateAnswer(question, answer, context);
   }
 
-  const { category = "dsa", difficulty = "intermediate", previousQuestions = "None", previousAnswers = "None" } = context;
+  const { category = "general", difficulty = "intermediate", previousQuestions = "None", previousAnswers = "None" } = context;
 
   const categoryNames = {
     dsa: "Data Structures & Algorithms (DSA)",
@@ -717,11 +837,16 @@ const evaluateAnswer = async (question, answer, context = {}) => {
   };
   const categoryName = categoryNames[category] || "Technical";
 
+  const isBehavioralOrHR = ["hr", "behavioral"].includes(category);
+  const evaluationFocus = isBehavioralOrHR
+    ? "communication, situational judgment, STAR method application (Situation, Task, Action, Result), and cultural fit"
+    : "technical accuracy, depth of knowledge, code quality, and best practices";
+
   const systemPrompt = `You are a senior ${categoryName} interviewer conducting a realistic mock interview.
 
 Your role is to:
 * analyze the candidate's answer deeply,
-* evaluate technical accuracy, depth of knowledge, best practices, and communication,
+* evaluate ${evaluationFocus},
 * identify strengths and areas for improvement,
 * determine if a follow-up question is needed on the same topic/answer, or if the interview should transition,
 * generate contextual feedback.
@@ -730,7 +855,7 @@ Your role is to:
 INTERVIEW RULES
 ===============
 1. Analyze answer quality before scoring.
-2. Evaluate technical depth, completeness, and clarity.
+2. Evaluate depth, completeness, and clarity.
 3. Behave like a real, experienced interviewer for ${categoryName}.
 4. Do not offer generic praise or repeated boilerplate feedback.
 
@@ -758,7 +883,7 @@ ${answer}
 TASKS
 =====
 1. Evaluate the candidate's response to the CURRENT QUESTION.
-2. Determine their score on a scale of 0-10 for Technical Accuracy, Clarity, Communication, and Depth.
+2. Determine their score on a scale of 0-10 for ${isBehavioralOrHR ? "Behavioral Fit" : "Technical Accuracy"}, Clarity, Communication, and Depth.
 3. Provide constructive, specific feedback referencing their actual response.
 4. Specify if a follow-up is needed based on their answer (e.g. if they missed key details, edge cases, trade-offs, or best practices).
 5. Suggest the appropriate difficulty level for subsequent questions based on their performance.
@@ -767,10 +892,10 @@ TASKS
 SCORING CRITERIA
 ================
 Evaluate STRICTLY on:
-1. Technical Accuracy (0-10): correctness, best practices, framework/language details, or structural accuracy.
+1. ${isBehavioralOrHR ? "Behavioral Fit" : "Technical Accuracy"} (0-10): ${isBehavioralOrHR ? "relevance of situational experience, STAR structure, and cultural alignment" : "correctness, best practices, framework/language details, or structural accuracy"}.
 2. Clarity (0-10): structured explanation, readability, explanation organization.
 3. Communication (0-10): articulation, confidence, professional tone.
-4. Depth (0-10): knowledge of edge cases, trade-offs, optimizations, or real-world applicability.
+4. Depth (0-10): ${isBehavioralOrHR ? "lessons learned, result/impact description, and personal contribution details" : "knowledge of edge cases, trade-offs, optimizations, or real-world applicability"}.
 
 ==================================================
 RETURN STRICT JSON
@@ -847,7 +972,7 @@ RETURN STRICT JSON
   }
 };
 
-const generateOverallFeedback = async (interviewData) => {
+const fallbackGenerateOverallFeedback = (interviewData) => {
   const { questions, config } = interviewData;
   const answered = questions.filter(q => q.answer && q.answer.trim().length > 30);
   
@@ -905,6 +1030,214 @@ const generateOverallFeedback = async (interviewData) => {
   };
 };
 
+const generateOverallFeedback = async (interviewData) => {
+  if (!genAI || !model) {
+    console.warn("⚠️ Gemini AI not initialized, using fallback overall feedback.");
+    return fallbackGenerateOverallFeedback(interviewData);
+  }
+
+  const { questions, config } = interviewData;
+  const answered = questions.filter(q => q.answer && q.answer.trim().length > 20);
+
+  if (answered.length === 0) {
+    return fallbackGenerateOverallFeedback(interviewData);
+  }
+
+  const categoryNames = {
+    dsa: "Data Structures & Algorithms",
+    mern: "MERN Stack",
+    "system-design": "System Design",
+    hr: "Human Resources",
+    java: "Java",
+    python: "Python",
+    behavioral: "Behavioral",
+    "role-based": "Role-Specific",
+    general: "General"
+  };
+  const categoryName = categoryNames[config?.category || "general"] || "Technical";
+  
+  const qaPairs = answered.map((q, idx) => {
+    return `Q${idx + 1} [${q.topic}]: ${q.question}\nA${idx + 1}: ${q.answer}\nScore: ${q.evaluation?.score || 0}/10\nFeedback given: ${q.evaluation?.feedback || ""}`;
+  }).join("\n\n");
+
+  const prompt = `You are an expert ${categoryName} technical interviewer and career coach.
+Analyze the candidate's performance across the entire interview session.
+
+==================================================
+INTERVIEW SUMMARY
+=================
+Category: ${categoryName}
+Target Role: ${config?.role || "General"}
+Questions Answered: ${answered.length}
+
+==================================================
+Q&A LOG
+=======
+${qaPairs}
+
+==================================================
+TASKS
+=====
+Based on the candidate's answers and individual question scores:
+1. Write a comprehensive, personalized paragraph summarizing their overall performance. Mention specific patterns, strengths, and where they consistently struggled.
+2. Identify 2-3 specific strong topics/skills they demonstrated.
+3. Identify 2-3 specific weak topics/skills they need to improve.
+4. Provide 3-4 highly actionable recommendations for their next interview or study session.
+5. Give a letter grade (A, B+, B, C+, C, D, F).
+6. Determine the best answered question and the weakest answered question (by question number, e.g., "Question 1").
+7. Describe their consistency (e.g., "Consistent performer", "Strong start but faded", "Inconsistent depth").
+
+RETURN STRICT JSON FORMAT:
+{
+  "overallFeedback": "string (comprehensive paragraph)",
+  "strongTopics": ["...", "..."],
+  "weakTopics": ["...", "..."],
+  "recommendations": ["...", "...", "..."],
+  "grade": "A/B+/B/C/D/F",
+  "performanceSummary": {
+    "bestAnswer": "Question X",
+    "weakestAnswer": "Question Y",
+    "consistency": "..."
+  }
+}`;
+
+  try {
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+      }
+    });
+
+    const text = result.response.text();
+    const jsonStr = cleanJSON(text);
+    if (!jsonStr) throw new Error("Invalid JSON from Gemini");
+    
+    return JSON.parse(jsonStr);
+  } catch (error) {
+    console.error("❌ Gemini generateOverallFeedback error:", error.message);
+    return fallbackGenerateOverallFeedback(interviewData);
+  }
+};
+
+const fallbackParseResume = (rawText) => {
+  const lines = rawText.split("\n");
+  const skills = [];
+  const projects = [];
+  const internships = [];
+  const achievements = [];
+  const education = [];
+
+  const lowerText = rawText.toLowerCase();
+  const commonSkills = [
+    "javascript", "react", "node.js", "express", "mongodb", "java", "spring boot", "python",
+    "html", "css", "sql", "git", "docker", "kubernetes", "c++", "c#", "typescript", "aws"
+  ];
+  commonSkills.forEach(skill => {
+    if (lowerText.includes(skill)) {
+      skills.push(skill.charAt(0).toUpperCase() + skill.slice(1));
+    }
+  });
+
+  return {
+    skills: skills.length ? skills : ["General Software Engineering"],
+    projects: [
+      {
+        name: "General Software Project",
+        description: "Developed applications and resolved bugs in software codebase.",
+        technologies: skills.slice(0, 3)
+      }
+    ],
+    internships: [],
+    achievements: [],
+    technologies: skills,
+    education: []
+  };
+};
+
+const parseResume = async (rawText) => {
+  if (!genAI || !model) {
+    console.warn("⚠️ Gemini AI not initialized, using fallback resume parsing.");
+    return fallbackParseResume(rawText);
+  }
+
+  const prompt = `You are an expert ATS (Applicant Tracking System) and AI resume parser.
+Your task is to analyze the following raw resume text and extract key structural information into a clean, standardized JSON format.
+
+Raw Resume Text:
+${rawText}
+
+--------------------------------------------------
+EXTRACT THE FOLLOWING FIELDS:
+1. skills: array of strings containing all tech skills, tools, programming languages, libraries, frameworks.
+2. projects: array of objects, where each project has:
+   * name: string (project name)
+   * description: string (detailed bulleted description of what was done)
+   * technologies: array of strings (technologies used)
+3. internships: array of objects, where each internship has:
+   * company: string
+   * role: string
+   * duration: string
+   * description: string
+4. achievements: array of strings (e.g. hackathons, certifications, honors)
+5. technologies: array of strings (all programming languages or frameworks consolidated)
+6. education: array of objects, where each has:
+   * institution: string
+   * degree: string
+   * year: string
+
+RETURN STRICT JSON FORMAT ONLY:
+{
+  "skills": ["...", "..."],
+  "projects": [
+    {
+      "name": "...",
+      "description": "...",
+      "technologies": ["...", "..."]
+    }
+  ],
+  "internships": [
+    {
+      "company": "...",
+      "role": "...",
+      "duration": "...",
+      "description": "..."
+    }
+  ],
+  "achievements": ["...", "..."],
+  "technologies": ["...", "..."],
+  "education": [
+    {
+      "institution": "...",
+      "degree": "...",
+      "year": "..."
+    }
+  ]
+}`;
+
+  try {
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.1,
+      }
+    });
+
+    const text = result.response.text();
+    const jsonStr = cleanJSON(text);
+    if (!jsonStr) {
+      throw new Error("Could not parse JSON from Gemini resume parsing response");
+    }
+
+    return JSON.parse(jsonStr);
+  } catch (error) {
+    console.error("❌ Gemini parseResume error:", error.message);
+    return fallbackParseResume(rawText);
+  }
+};
+
 const adjustDifficulty = (score, currentDifficulty) => {
   if (!score) return currentDifficulty;
   if (score >= 8) {
@@ -923,4 +1256,5 @@ module.exports = {
   generateNextQuestion,
   evaluateAnswer,
   generateOverallFeedback,
+  parseResume,
 };

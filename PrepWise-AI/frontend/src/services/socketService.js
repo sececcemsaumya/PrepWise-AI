@@ -1,5 +1,9 @@
 import { io } from "socket.io-client";
 
+const SOCKET_URL = import.meta.env.VITE_API_URL
+  ? import.meta.env.VITE_API_URL.replace("/api", "")
+  : "https://prepwise-ai-backend-up1w.onrender.com";
+
 let socket = null;
 
 /**
@@ -8,7 +12,7 @@ let socket = null;
 export const initSocket = (token) => {
   if (socket?.connected) return socket;
 
-  socket = io("/", {
+  socket = io(SOCKET_URL, {
     auth: { token },
     transports: ["websocket", "polling"],
     reconnection: true,

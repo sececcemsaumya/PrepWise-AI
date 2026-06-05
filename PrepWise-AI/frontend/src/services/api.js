@@ -1,8 +1,11 @@
 import axios from "axios";
 
+// Use environment variable if set, otherwise fall back to Render backend
+const BASE_URL = import.meta.env.VITE_API_URL || "https://prepwise-ai-backend-up1w.onrender.com/api";
+
 // Create axios instance
 const api = axios.create({
-  baseURL: "/api",
+  baseURL: BASE_URL,
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",

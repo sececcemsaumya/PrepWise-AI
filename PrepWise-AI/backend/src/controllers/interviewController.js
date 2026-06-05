@@ -50,7 +50,7 @@ const startInterview = async (req, res) => {
     }
 
     const resumeData = user.resume.parsedData;
-    const config = { category, role, difficulty, totalQuestions: totalQuestions ? parseInt(totalQuestions) : 6 };
+    const config = { category, role, difficulty, totalQuestions: totalQuestions ? parseInt(totalQuestions) : 6, candidateName: user.name };
 
     const firstQuestion = await generateFirstQuestion(resumeData, config);
     
@@ -189,7 +189,8 @@ const submitAnswer = async (req, res) => {
     interview.questions[currentQuestionIndex].timeSpent = timeSpent || 0;
     
     const MAX_QUESTIONS = interview.config.totalQuestions || 6;
-    const shouldComplete = (currentQuestionIndex + 1) >= MAX_QUESTIONS;
+    // All interviews are adaptive and unlimited, completed only when candidate chooses to end.
+    const shouldComplete = false;
     
     if (shouldComplete) {
       interview.status = "ready_to_complete";
@@ -272,7 +273,7 @@ const submitAnswer = async (req, res) => {
         isFollowUp: newQuestion.isFollowUp || false,
       },
       nextQuestionIndex: currentQuestionIndex + 1,
-      isLastQuestion: currentQuestionIndex + 1 >= MAX_QUESTIONS - 1,
+      isLastQuestion: false,
       sessionState: {
         currentTopic: memory.currentTopic,
         questionsAnswered: memory.questionCount,
@@ -301,7 +302,29 @@ const completeInterview = async (req, res) => {
     const answered = interview.questions.filter((q) => q.answer && q.answer.trim().length > 20);
     
     if (answered.length === 0) {
-      return res.status(400).json({ success: false, message: "No substantial answers to evaluate" });
+      interview.status = "completed";
+      interview.completedAt = new Date();
+      interview.duration = Math.floor((new Date() - interview.startedAt) / 1000);
+      interview.results = {
+        averageScore: 0,
+        technicalScore: 0,
+        communicationScore: 0,
+        overallFeedback: "This interview session was completed without any substantial answers.",
+        strongTopics: [],
+        weakTopics: [],
+        recommendations: ["Ensure you attempt and answer questions to receive detailed feedback."],
+        grade: "F",
+      };
+      await interview.save();
+      await redisDel(`memory:${sessionId}`);
+      
+      return res.json({
+        success: true,
+        message: "Interview completed with no answers.",
+        results: interview.results,
+        duration: interview.duration,
+        questionsAnswered: 0,
+      });
     }
     
     const avgScore = answered.reduce((sum, q) => sum + (q.evaluation?.score || 0), 0) / answered.length;
@@ -434,20 +457,80 @@ const getAnalytics = async (req, res) => {
         totalInterviews: 0, 
         averageScore: 0, 
         bestScore: 0, 
+        totalQuestions: 0,
+        recentInterviews: [],
+        scoreHistory: [],
+        categoryBreakdown: {},
+        topicPerformance: {},
+        strongTopics: [],
+        weakTopics: [],
         recommendations: ["Complete your first interview to get insights!"]
       }});
     }
 
     const scores = interviews.map((i) => i.results?.averageScore || 0);
     const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-    
+
+    // Calculate category breakdown
+    const categoryBreakdown = {};
+    interviews.forEach((i) => {
+      const cat = i.config?.category || "general";
+      if (!categoryBreakdown[cat]) {
+        categoryBreakdown[cat] = { count: 0, totalScore: 0 };
+      }
+      categoryBreakdown[cat].count += 1;
+      categoryBreakdown[cat].totalScore += i.results?.averageScore || 0;
+    });
+    Object.keys(categoryBreakdown).forEach((cat) => {
+      categoryBreakdown[cat].averageScore = categoryBreakdown[cat].totalScore / categoryBreakdown[cat].count;
+    });
+
+    // Calculate topic performance
+    const topicPerformance = {};
+    interviews.forEach((i) => {
+      i.questions.forEach((q) => {
+        if (q.answer && q.topic && q.evaluation) {
+          const t = q.topic;
+          if (!topicPerformance[t]) {
+            topicPerformance[t] = { count: 0, totalScore: 0 };
+          }
+          topicPerformance[t].count += 1;
+          topicPerformance[t].totalScore += q.evaluation.score || 0;
+        }
+      });
+    });
+    Object.keys(topicPerformance).forEach((t) => {
+      topicPerformance[t].averageScore = topicPerformance[t].totalScore / topicPerformance[t].count;
+    });
+
+    // Extract strong and weak topics
+    const sortedTopics = Object.entries(topicPerformance).map(([topic, data]) => ({
+      topic,
+      averageScore: data.averageScore,
+    })).sort((a, b) => b.averageScore - a.averageScore);
+
+    const strongTopics = sortedTopics.filter((t) => t.averageScore >= 7).map((t) => t.topic);
+    const weakTopics = sortedTopics.filter((t) => t.averageScore < 7).map((t) => t.topic);
+
+    // Extract unique recommendations
+    let recommendations = [];
+    interviews.forEach((i) => {
+      if (i.results?.recommendations) {
+        recommendations.push(...i.results.recommendations);
+      }
+    });
+    recommendations = [...new Set(recommendations)].slice(0, 5);
+    if (recommendations.length === 0) {
+      recommendations = ["Continue practicing in different categories to get personalized recommendations."];
+    }
+
     res.json({
       success: true,
       analytics: {
         totalInterviews: interviews.length,
         averageScore: Math.round(avgScore * 10) / 10,
         bestScore: Math.round(Math.max(...scores) * 10) / 10,
-        totalQuestions: interviews.reduce((sum, i) => sum + (i.results?.questionBreakdown?.length || 0), 0),
+        totalQuestions: interviews.reduce((sum, i) => sum + (i.questions.filter((q) => q.answer).length || 0), 0),
         recentInterviews: interviews.slice(-5).reverse().map((i) => ({
           category: i.config?.category || "general",
           difficulty: i.config?.difficulty || "intermediate",
@@ -456,6 +539,16 @@ const getAnalytics = async (req, res) => {
           score: i.results?.averageScore || 0,
           grade: i.results?.grade,
         })),
+        scoreHistory: interviews.map((i) => ({
+          score: i.results?.averageScore || 0,
+          date: i.completedAt || i.createdAt,
+          category: i.config?.category || "general",
+        })),
+        categoryBreakdown,
+        topicPerformance,
+        strongTopics,
+        weakTopics,
+        recommendations,
       },
     });
   } catch (error) {
@@ -472,3 +565,4 @@ module.exports = {
   getInterviewHistory, 
   getAnalytics 
 };
+// Trigger nodemon restart

@@ -62,6 +62,36 @@ export const AuthProvider = ({ children }) => {
     setUser((prev) => ({ ...prev, ...updates }));
   }, []);
 
+  const isAuthenticated = !!user;
+
+  // Automatic logout on inactivity (e.g. 15 minutes)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes
+    let timeoutId;
+
+    const handleActivity = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        logout();
+        alert("You have been automatically logged out due to inactivity.");
+      }, INACTIVITY_TIMEOUT);
+    };
+
+    // Set initial timeout
+    handleActivity();
+
+    // Listen to user interactions
+    const events = ["mousemove", "keydown", "mousedown", "scroll", "touchstart"];
+    events.forEach((event) => window.addEventListener(event, handleActivity));
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      events.forEach((event) => window.removeEventListener(event, handleActivity));
+    };
+  }, [isAuthenticated, logout]);
+
   const value = {
     user,
     token,
@@ -70,7 +100,7 @@ export const AuthProvider = ({ children }) => {
     signup,
     logout,
     updateUser,
-    isAuthenticated: !!user,
+    isAuthenticated,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

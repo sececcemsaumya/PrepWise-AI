@@ -1,7 +1,6 @@
 # PrepWise AI
-### Personalized AI-Powered Mock Interview Preparation Platform
 
----
+### Personalized AI-Powered Mock Interview Preparation Platform
 
 ## 🌍 The Problem
 
@@ -11,139 +10,142 @@ At the same time, recruiters and interviewers often focus heavily on resume-base
 
 **PrepWise AI** solves this problem by creating personalized AI-driven mock interviews that analyze uploaded resumes, generate contextual technical questions, evaluate answers intelligently, and provide detailed performance analytics to help users improve their interview readiness.
 
----
-
 ## ✨ Key Features
 
 ### 🔐 Secure Authentication & User Management
-- **JWT Authentication:** Secure login and session management using JSON Web Tokens.
-- **Protected Routes:** Restrict dashboard and interview access to authenticated users.
-- **Password Encryption:** Secure password hashing using bcrypt.
+
+* **JWT Authentication:** Secure login and session management using JSON Web Tokens.
+* **Protected Routes:** Restrict dashboard and interview access to authenticated users.
+* **Password Encryption:** Secure password hashing using bcrypt.
 
 ### 📄 AI-Powered Resume Analysis
-- **Resume Upload:** Upload resumes in PDF format.
-- **Resume Parsing:** Extract skills, projects, internships, achievements, and technologies using pdf-parse.
-- **Contextual Understanding:** AI analyzes resume content to generate personalized interview experiences.
+
+* **Resume Upload:** Upload resumes in PDF format.
+* **Resume Parsing:** Extract skills, projects, internships, achievements, and technologies using pdf-parse.
+* **Contextual Understanding:** AI analyzes resume content to generate personalized interview experiences.
 
 ### 🤖 Personalized AI Interview Generation
-- **Dynamic Question Generation:** Generate technical questions based on:
-  - Skills
-  - Projects
-  - Internships
-  - Achievements
-  - Selected role
-  - Interview category
 
-- **Role-Based Interviews:**
-  - Frontend Developer
-  - Backend Developer
-  - Full Stack Developer
-  - Software Engineer
+* **Dynamic Question Generation:** Generate technical questions based on:
 
-- **Interview Categories:**
-  - General Interview *(Adaptive & Unlimited)*
-  - DSA
-  - HR
-  - MERN Stack
-  - System Design
-  - Java
-  - Python
-  - Behavioral Interviews
+  * Skills
+  * Projects
+  * Internships
+  * Achievements
+  * Selected Role
+  * Interview Category
+
+* **Role-Based Interviews:**
+
+  * Frontend Developer
+  * Backend Developer
+  * Full Stack Developer
+  * Software Engineer
+
+* **Interview Categories:**
+
+  * General Interview 
+  * DSA
+  * HR
+  * MERN Stack
+  * System Design
+  * Java
+  * Python
+  * Behavioral Interviews
 
 ### 🧠 Adaptive AI Follow-Up System
-- **Context-Aware Follow-Up Questions:** AI generates intelligent follow-up questions based on previous responses.
-- **Project-Focused Discussions:** Simulates realistic recruiter-style questioning on projects and internships.
+
+* **Context-Aware Follow-Up Questions:** AI generates intelligent follow-up questions based on previous responses.
+* **Project-Focused Discussions:** Simulates realistic recruiter-style questioning on projects and internships.
+* **Dynamic Interview Flow:** Adapts interview depth according to candidate responses.
 
 ### ⚡ Real-Time Interview Experience
-- **Live Interview Sessions:** Real-time question progression using Socket.io.
-- **Interview Timer:** Timed interview rounds for realistic simulation.
-- **Instant Updates:** Real-time synchronization between frontend and backend.
+
+* **Live Interview Sessions:** Real-time question progression using Socket.io.
+* **Instant Updates:** Real-time synchronization between frontend and backend.
+* **Interactive Interview Flow:** Seamless communication throughout the interview process.
 
 ### 📊 Analytics & Performance Dashboard
-- **Performance Tracking:**
-  - Interview scores
-  - Weak topics
-  - Strong areas
-  - Topic improvement trends
-  - Total interviews completed
-- **Interview History:** Track all previous mock interview sessions.
-- **Progress Analytics:** Visualize growth and performance over time.
 
-### 🚀 Performance Optimization with Redis
-- **Caching:** Cache frequently generated interview questions for faster response times.
-- **Session Management:** Store temporary interview session data efficiently.
-- **Improved Scalability:** Reduce repeated AI API calls and optimize backend performance.
+* **Performance Tracking:**
 
----
+  * Interview Scores
+  * Weak Topics
+  * Strong Areas
+  * Topic Improvement Trends
+  * Total Interviews Completed
+* **Interview History:** Track all previous mock interview sessions.
+* **Progress Analytics:** Visualize growth and performance over time.
 
 ## 💻 Tech Stack
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| Frontend | React.js | Component-based frontend development |
-| Frontend | CSS | Custom responsive UI styling |
-| Frontend | Axios | API communication |
-| Frontend | React Router | Client-side routing |
-| Backend | Node.js / Express.js | Backend server and REST APIs |
-| Database | MongoDB / Mongoose | Database and object modeling |
-| Cache | Redis | Caching and temporary session storage |
-| Real-Time | Socket.io | Real-time interview communication |
-| Auth | JWT | Secure authentication |
-| Auth | bcrypt | Password hashing |
-| AI Integration | Gemini API | AI-based interview generation and evaluation |
-| File Handling | multer | Resume upload handling |
-| File Handling | pdf-parse | Resume text extraction |
-| Dev Tools | dotenv | Environment variable management |
-| Dev Tools | Nodemon | Development server auto restart |
-
----
+| Layer              | Technology           | Purpose                                      |
+| ------------------ | -------------------- | -------------------------------------------- |
+| **Frontend**       | React.js             | Component-based frontend development         |
+|                    | CSS                  | Custom responsive UI styling                 |
+|                    | Axios                | API communication                            |
+|                    | React Router         | Client-side routing                          |
+| **Backend**        | Node.js / Express.js | Backend server and REST APIs                 |
+|                    | MongoDB / Mongoose   | Database and object modeling                 |
+|                    | Socket.io            | Real-time interview communication            |
+| **Authentication** | JWT                  | Secure authentication                        |
+|                    | bcrypt               | Password hashing                             |
+| **AI Integration** | Gemini API           | AI-based interview generation and evaluation |
+| **File Handling**  | multer               | Resume upload handling                       |
+|                    | pdf-parse            | Resume text extraction                       |
+| **Dev Tools**      | dotenv               | Environment variable management              |
+|                    | Nodemon              | Development server auto restart              |
 
 ## 🏗️ System Design Concepts
 
 ### 1. Resume-Aware AI Workflow
+
 The system extracts contextual information from uploaded resumes including skills, projects, internships, and achievements. This data is used to dynamically generate highly personalized interview questions instead of static question sets.
 
 ### 2. Adaptive AI Interview Engine
+
 The AI interview flow is dynamic. Based on user responses, the system generates contextual follow-up questions to simulate realistic interviewer behavior and deeper technical discussions.
 
 ### 3. Real-Time Architecture
+
 Socket.io enables real-time communication for:
-- Interview timers
-- Live question progression
-- Instant session updates
 
-This creates a smooth and interactive interview experience.
+* Live question progression
+* Instant session updates
+* Interactive interview sessions
 
-### 4. Redis-Based Performance Optimization
-Redis is used to cache generated interview questions and temporary session data. This reduces repeated AI requests and improves overall backend responsiveness.
+This creates a smooth and engaging interview experience without requiring page refreshes.
 
-### 5. Modular REST API Architecture
+### 4. Modular REST API Architecture
+
 The backend follows a modular RESTful architecture with separate controllers, services, middleware, and routes to improve scalability and maintainability.
 
-### 6. AI-Based Evaluation Pipeline
+### 5. AI-Based Evaluation Pipeline
+
 The Gemini API evaluates user responses based on:
-- Technical correctness
-- Clarity
-- Communication quality
-- Explanation depth
-- Confidence
+
+* Technical Correctness
+* Communication Clarity
+* Explanation Depth
+* Problem-Solving Ability
+* Confidence
 
 This creates intelligent feedback and analytics.
 
-### 7. Scalable Analytics System
-All interview sessions, scores, and evaluations are stored in MongoDB, enabling long-term performance tracking and dashboard analytics.
+### 6. Scalable Analytics System
 
----
+All interview sessions, scores, and evaluations are stored in MongoDB, enabling long-term performance tracking and dashboard analytics.
 
 ## 🚀 Easy Setup Instructions
 
 ### Prerequisites
-- Node.js (v16+)
-- MongoDB
-- Redis
-- Gemini API Key
+
+* Node.js (v16+)
+* MongoDB
+* Gemini API Key
 
 ### 1. Clone the Repository
+
 ```bash
 git clone <repository-url>
 cd PrepWise-AI
@@ -151,109 +153,69 @@ cd PrepWise-AI
 
 ### 2. Backend Setup
 
-Navigate to backend folder:
-```bash
-cd backend
-```
+1. Navigate to the backend folder:
 
-Install dependencies:
-```bash
-npm install
-```
+   ```bash
+   cd backend
+   ```
 
-Create a `.env` file:
-```env
-PORT=5000
-MONGODB_URI=your_mongodb_uri
-JWT_SECRET=your_secret_key
-GEMINI_API_KEY=your_gemini_api_key
-REDIS_URL=your_redis_url
-CLIENT_URL=http://localhost:5173
-NODE_ENV=development
-```
+2. Install dependencies:
 
-Start backend server:
-```bash
-npm run dev
-```
+   ```bash
+   npm install
+   ```
+
+3. Create a `.env` file:
+
+   ```env
+   PORT=5000
+   MONGODB_URI=your_mongodb_uri
+   JWT_SECRET=your_secret_key
+   GEMINI_API_KEY=your_gemini_api_key
+   CLIENT_URL=http://localhost:5173
+   NODE_ENV=development
+   ```
+
+4. Start the backend server:
+
+   ```bash
+   npm run dev
+   ```
 
 ### 3. Frontend Setup
 
-Navigate to frontend folder:
-```bash
-cd ../frontend
-```
+1. Navigate to the frontend folder:
 
-Install dependencies:
-```bash
-npm install
-```
+   ```bash
+   cd ../frontend
+   ```
 
-Start frontend server:
-```bash
-npm run dev
-```
+2. Install dependencies:
 
-Open your browser at **http://localhost:5173**
+   ```bash
+   npm install
+   ```
 
----
+3. Start the frontend server:
 
-## � Folder Structure
+   ```bash
+   npm run dev
+   ```
 
-```
-PrepWise-AI/
-├── frontend/
-│   ├── public/
-│   └── src/
-│       ├── components/
-│       │   ├── Navbar/
-│       │   ├── Sidebar/
-│       │   └── Common/
-│       ├── pages/
-│       │   ├── Home/
-│       │   ├── Login/
-│       │   ├── Signup/
-│       │   ├── Dashboard/
-│       │   ├── UploadResume/
-│       │   ├── InterviewSession/
-│       │   ├── InterviewResult/
-│       │   └── Profile/
-│       ├── context/
-│       ├── hooks/
-│       ├── services/
-│       ├── routes/
-│       ├── utils/
-│       └── styles/
-├── backend/
-│   └── src/
-│       ├── config/
-│       ├── controllers/
-│       ├── models/
-│       ├── routes/
-│       ├── middleware/
-│       ├── services/
-│       ├── sockets/
-│       └── utils/
-├── README.md
-└── package.json
-```
+4. Open your browser:
+
+   ```
+   http://localhost:5173
+   ```
 
 ---
 
-## � Future Enhancements
+## 🌐 Live Demo
 
-- Voice-based interview support
-- AI emotion and confidence analysis
-- Video interview simulation
-- Multi-language interview support
-- Integrated coding interview editor
-- AI-generated learning roadmap
-- Advanced recruiter analytics
+Experience PrepWise AI in action:
+
+🚀 **Demo Link:** https://prep-wise-ai-frontend.vercel.app/
 
 ---
 
-## 👨‍💻 Author
-
-**Developed by Saumya M**
-
-Built with ❤️ to help students prepare smarter, perform better, and crack interviews with confidence.
+*Developed with ❤️ to help students prepare smarter, perform better, and crack technical interviews with confidence.*

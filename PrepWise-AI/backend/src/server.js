@@ -4,7 +4,6 @@ const { Server } = require("socket.io");
 
 const app = require("./app");
 const connectDB = require("./config/db");
-const { connectRedis } = require("./config/redis");
 const { initializeSocket } = require("./sockets/interviewSocket");
 const { initGemini } = require("./services/geminiService");
 
@@ -16,8 +15,8 @@ const server = http.createServer(app);
 // Initialize Socket.io
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    methods: ["GET", "POST"],
+    origin: process.env.CLIENT_URL,
+    methods: ["GET", "POST", "OPTIONS"],
     credentials: true,
   },
   pingTimeout: 60000,
@@ -33,9 +32,6 @@ const startServer = async () => {
     // Connect to MongoDB
     await connectDB();
 
-    // Connect to Redis (non-blocking)
-    connectRedis();
-
     // Initialize Gemini AI
     initGemini();
 
@@ -43,7 +39,7 @@ const startServer = async () => {
     server.listen(PORT, () => {
       console.log(`\n🚀 PrepWise AI Server running on port ${PORT}`);
       console.log(`📡 Environment: ${process.env.NODE_ENV || "development"}`);
-      console.log(`🌐 Client URL: ${process.env.CLIENT_URL || "http://localhost:5173"}`);
+      console.log(`🌐 Client URL: ${process.env.CLIENT_URL}`);
       console.log(`📊 API: http://localhost:${PORT}/api/health\n`);
     });
   } catch (error) {
